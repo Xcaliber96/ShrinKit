@@ -56,37 +56,51 @@ The database is normalized into two primary tables to separate static link data 
 
 #### `POST /shorten`
 Generates a new short link or custom alias.
+
+**Request**
 ```json
-// Request
 {
   "url": "https://example.com",
-  "custom_code": "my-portfolio" // Optional
+  "custom_code": "my-portfolio"
 }
 
-// Response (201 Created)
+```
+
+**Response (201 Created)**
+
+```json
 {
   "short_url": "http://localhost:8000/my-portfolio",
   "code": "my-portfolio",
   "created_at": "2026-02-24T12:00:00Z",
   "expires_at": "2026-03-26T12:00:00Z"
 }
-💻 Local Setup & Installation
-Prerequisites
-Python 3.9+ installed on your machine.
 
-A PostgreSQL database (this project uses Supabase).
+```
 
-Git for version control.
+---
 
-Step-by-Step Guide
-1. Clone the repository
+## 💻 Local Setup & Installation
 
-Bash
+### Prerequisites
+
+* **Python 3.9+** installed on your machine.
+* A **PostgreSQL** database (this project uses [Supabase](https://supabase.com/)).
+* **Git** for version control.
+
+### Step-by-Step Guide
+
+**1. Clone the repository**
+
+```bash
 git clone https://github.com/yourusername/production-url-shortener.git
 cd production-url-shortener
-2. Create and activate a virtual environment
 
-Bash
+```
+
+**2. Create and activate a virtual environment**
+
+```bash
 # On Windows
 python -m venv venv
 venv\Scripts\activate
@@ -94,18 +108,28 @@ venv\Scripts\activate
 # On macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
-3. Install dependencies
 
-Bash
+```
+
+**3. Install dependencies**
+
+```bash
 pip install -r requirements.txt
-4. Configure Environment Variables
-Create a .env file in the root directory and add your Supabase connection string and base URL:
 
-Code snippet
+```
+
+**4. Configure Environment Variables**
+Create a `.env` file in the root directory and add your Supabase connection string and base URL:
+
+```env
 DATABASE_URL=postgresql://postgres.your_project_ref:your_password@aws-0-region.pooler.supabase.com:6543/postgres
 BASE_URL=http://127.0.0.1:8000
 APP_NAME="Production URL Shortener"
-5. Run the server
 
-Bash
+```
+
+**5. Run the server**
+
+```bash
 uvicorn main:app --reload
+
