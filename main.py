@@ -1,10 +1,12 @@
 import logging
 import asyncpg
+import re
 
 from fastapi import FastAPI, HTTPException, Request, status, BackgroundTasks, Path
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, HttpUrl
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -13,8 +15,17 @@ from slowapi.errors import RateLimitExceeded
 from app.database import connect_db, close_db, get_db
 from app.config import get_settings
 from app.utils import generate_short_string
-from app.crud import create_short_url, get_original_url, get_stats_data, get_click_timeline
+from app.crud import (
+    create_short_url, 
+    get_original_url, 
+    get_stats_data, 
+    get_click_timeline,
+    get_existing_url_data, 
+    check_short_code_exists
+)
 
+
+RESERVED_PATHS = {"docs", "openapi", "health", "stats", "shorten", "recent", "admin", "api", "login", "static", "assets"}
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -25,6 +36,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 class ShortenRequest(BaseModel):
     url: HttpUrl
+    custom_code: Optional[str] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,9 +65,40 @@ async def health_check():
 @app.post("/shorten", status_code=status.HTTP_201_CREATED)
 @limiter.limit("10/minute") 
 async def shorten_url(request: Request, payload: ShortenRequest):
+    if not payload.custom_code:
+        existing_data = await get_existing_url_data(str(payload.url))
+        if existing_data:
+            return {
+                "short_url": f"{settings.BASE_URL}/{existing_data['short_code']}",
+                "code": existing_data["short_code"],
+                "created_at": existing_data["created_at"],
+                "expires_at": existing_data["expires_at"]
+            }
+        
+    if payload.custom_code:
+        code  = payload.custom_code.lower()
+        if not re.match(r'^[a-zA-Z0-9]{3,20}$', payload.custom_code):
+            raise HTTPException(status_code=400, detail="Custom code must be 3-20 alphanumeric characters")
+        if code in RESERVED_PATHS:
+            raise HTTPException(status_code=400, detail="Custom code is reserved")
+        if await check_short_code_exists(code):
+            raise HTTPException(status_code=400, detail="Custom code already in use")
+        try:
+            db_row = await create_short_url(str(payload.url), payload.custom_code)
+            return {
+                "short_url": f"{settings.BASE_URL}/{payload.custom_code}",
+                "code": payload.custom_code,
+                "created_at": db_row["created_at"],
+                "expires_at": db_row["expires_at"]
+            }
+        except asyncpg.exceptions.UniqueViolationError:
+            raise HTTPException(status_code=400, detail="Custom code already in use")
+
     max_retries = 3
     for attempt in range(max_retries):
-        code = generate_short_string()
+        code = generate_short_string().lower()
+        if code in RESERVED_PATHS or await check_short_code_exists(code):
+            continue
         try:
             db_row = await create_short_url(str(payload.url), code)
             
@@ -77,7 +120,7 @@ async def shorten_url(request: Request, payload: ShortenRequest):
 
 @app.get("/stats/{short_code}")
 async def get_link_stats(
-    short_code: str = Path(..., min_length=6, max_length=6)
+    short_code: str = Path(..., min_length=3, max_length=20)
 ):
     pool = await get_db()
     query = """
@@ -110,7 +153,7 @@ async def get_link_stats(
         }
 
 @app.get("/stats/{short_code}/timeline")
-async def get_timeline_stats(short_code: str = Path(..., min_length=6, max_length=6)):
+async def get_timeline_stats(short_code: str = Path(..., min_length=3, max_length=20)):
     timeline = await get_click_timeline(short_code)
 
     if timeline is None:
@@ -122,7 +165,7 @@ async def get_timeline_stats(short_code: str = Path(..., min_length=6, max_lengt
 async def redirect_to_original(
     request: Request, 
     background_tasks: BackgroundTasks,
-    short_code: str = Path(..., min_length=6, max_length=6)
+    short_code: str = Path(..., min_length=3, max_length=20)
 ):
     ip = request.client.host
     ua = request.headers.get("user-agent")

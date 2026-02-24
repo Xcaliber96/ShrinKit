@@ -10,6 +10,24 @@ async def create_short_url(original_url: str, short_code: str, days_valid: int =
     """
     async with pool.acquire() as connection:
         return await connection.fetchrow(query, original_url, short_code, days_valid)
+    
+async def get_existing_url_data(original_url: str):
+    pool = await get_db()
+    query = """
+        SELECT short_code, created_at, expires_at 
+        FROM urls 
+        WHERE original_url = $1 
+        AND (expires_at IS NULL OR expires_at > NOW())
+    """
+    async with pool.acquire() as connection:
+        return await connection.fetchrow(query, original_url)
+    
+
+async def check_short_code_exists(short_code: str):
+    pool = await get_db()
+    query = "SELECT 1 FROM urls WHERE short_code = $1"
+    async with pool.acquire() as connection:
+        return await connection.fetchval(query, short_code) is not None
 
 async def log_analytics(url_id: int, ip: str, ua: str, ref: str):
 
