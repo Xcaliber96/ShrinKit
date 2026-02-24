@@ -4,6 +4,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
 A high-performance, full-stack URL shortening service engineered with production-level reliability and scalability in mind. Moving beyond a simple tutorial implementation, this system showcases modern backend engineering patterns including collision-safe concurrency, database normalization, and asynchronous observability.
 
@@ -24,15 +25,11 @@ A high-performance, full-stack URL shortening service engineered with production
 
 The application follows a decoupled client-server architecture. The backend acts as a high-throughput redirection engine and analytics ingestion API.
 
-
-
 ---
 
 ## 🗄️ Database Schema
 
 The database is normalized into two primary tables to separate static link data from high-volume, time-series visit events.
-
-
 
 ### `urls` (Link Metadata)
 | Column | Type | Description |
@@ -55,8 +52,6 @@ The database is normalized into two primary tables to separate static link data 
 
 ## 📡 API Request Flow
 
-
-
 ### Core Endpoints
 
 #### `POST /shorten`
@@ -64,7 +59,7 @@ Generates a new short link or custom alias.
 ```json
 // Request
 {
-  "url": "[https://example.com](https://example.com)",
+  "url": "https://example.com",
   "custom_code": "my-portfolio" // Optional
 }
 
@@ -75,4 +70,42 @@ Generates a new short link or custom alias.
   "created_at": "2026-02-24T12:00:00Z",
   "expires_at": "2026-03-26T12:00:00Z"
 }
+💻 Local Setup & Installation
+Prerequisites
+Python 3.9+ installed on your machine.
 
+A PostgreSQL database (this project uses Supabase).
+
+Git for version control.
+
+Step-by-Step Guide
+1. Clone the repository
+
+Bash
+git clone https://github.com/yourusername/production-url-shortener.git
+cd production-url-shortener
+2. Create and activate a virtual environment
+
+Bash
+# On Windows
+python -m venv venv
+venv\Scripts\activate
+
+# On macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+3. Install dependencies
+
+Bash
+pip install -r requirements.txt
+4. Configure Environment Variables
+Create a .env file in the root directory and add your Supabase connection string and base URL:
+
+Code snippet
+DATABASE_URL=postgresql://postgres.your_project_ref:your_password@aws-0-region.pooler.supabase.com:6543/postgres
+BASE_URL=http://127.0.0.1:8000
+APP_NAME="Production URL Shortener"
+5. Run the server
+
+Bash
+uvicorn main:app --reload
