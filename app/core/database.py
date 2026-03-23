@@ -2,7 +2,7 @@ import os
 import asyncpg
 import logging # Added logging
 
-from app.config import get_settings
+from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
