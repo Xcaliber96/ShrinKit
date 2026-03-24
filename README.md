@@ -60,7 +60,7 @@ Generates a new short link or custom alias.
 **Request**
 ```json
 {
-  "url": "https://example.com",
+  "url": "[https://example.com](https://example.com)",
   "custom_code": "my-portfolio"
 }
 
@@ -133,3 +133,30 @@ APP_NAME="APP_name"
 ```bash
 uvicorn main:app --reload
 
+```
+**6. Performance**
+```
+⚡ Performance & Load Testing
+
+The system was benchmarked using **Locust** under 50 concurrent users.
+
+### 📊 Results
+
+| Metric | Supabase (Cloud) | Local (Optimized) |
+|--------|----------------|------------------|
+| Avg Latency | 7000ms | 60ms |
+| Requests/sec | ~6.7 RPS | 135+ RPS |
+| Failure Rate | 100% | 0% |
+
+### 🚀 Improvements
+- B-Tree indexing on `short_code`
+- Optimized DB connections
+- Reduced query overhead
+
+📊 Results
+
+![Performance Benchmark](assets/performance.png)
+  - Achieved ~135+ requests/sec under load
+  - Reduced latency from ~7000ms → ~60ms
+  - Eliminated failures after optimization (0%)
+  - Performance improved via indexing and DB tuning
