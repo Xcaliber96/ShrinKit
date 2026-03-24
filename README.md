@@ -136,7 +136,7 @@ uvicorn main:app --reload
 ```
 **6. Performance**
 ```
-⚡ Performance & Load Testing
+## ⚡ Performance & Load Testing
 
 The system was benchmarked using **Locust** under 50 concurrent users.
 
@@ -153,10 +153,11 @@ The system was benchmarked using **Locust** under 50 concurrent users.
 - Optimized DB connections
 - Reduced query overhead
 
-📊 Results
+### 📸 Benchmark Screenshot
 
 ![Performance Benchmark](assets/performance.png)
-  - Achieved ~135+ requests/sec under load
-  - Reduced latency from ~7000ms → ~60ms
-  - Eliminated failures after optimization (0%)
-  - Performance improved via indexing and DB tuning
+
+### 🔍 Key Observations
+- Achieved ~135+ requests/sec under load
+- Reduced latency from ~7000ms → ~60ms
+- Eliminated failures after optimization (0%)
