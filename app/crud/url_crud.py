@@ -10,25 +10,25 @@ async def create_short_url(original_url: str, short_code: str, days_valid: int =
     async with pool.acquire() as connection:
         return await connection.fetchrow(query, original_url, short_code, days_valid)
     
-async def get_original_url(short_code: str):
 
+async def get_and_increment_url(short_code: str):
     pool = await get_db()
-    query = """
-        UPDATE urls 
-        SET clicks = clicks + 1 
-        WHERE short_code = $1 
-        AND (expires_at IS NULL OR expires_at > NOW())
-        RETURNING id, original_url
-    """
+
     async with pool.acquire() as connection:
-        row = await connection.fetchrow(query, short_code)
-        
-        if row:
-            return{
-                "url_id": row["id"],
-                "original_url": row["original_url"]
-            }
-        return None
+        row = await connection.fetchrow("""
+            UPDATE urls 
+            SET clicks = clicks + 1 
+            WHERE short_code = $1 
+            AND (expires_at IS NULL OR expires_at > NOW())
+            RETURNING id, original_url
+        """, short_code)
+
+        if not row:
+            return None
+
+    
+        return row["id"], row["original_url"]
+
 
 async def get_existing_url_data(original_url: str):
     pool = await get_db()

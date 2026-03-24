@@ -7,11 +7,12 @@ from fastapi import Request, BackgroundTasks, HTTPException, status
 
 from app.core.config import get_settings
 from app.utils.generator import generate_short_string
+
 from app.crud.url_crud import (
-    get_original_url,
+    get_and_increment_url,
     create_short_url,
     get_existing_url_data,
-    check_short_code_exists
+    check_short_code_exists,
 )
 from app.crud.analytics_crud import log_analytics
 
@@ -35,20 +36,22 @@ async def handle_redirect(
     user_agent = request.headers.get("user-agent", "unknown")
     referrer = request.headers.get("referer", "direct")
 
-    url_data = await get_original_url(short_code)
+    result = await get_and_increment_url(short_code)
 
-    if not url_data:
+    if not result:
         return None
+
+    url_id, original_url = result  
 
     background_tasks.add_task(
         log_analytics,
-        url_data["url_id"],
+        url_id,   
         ip,
         user_agent,
         referrer
     )
 
-    return url_data["original_url"]
+    return original_url
 
 
 
