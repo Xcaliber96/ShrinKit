@@ -16,7 +16,7 @@ A high-performance, full-stack URL shortening service engineered with production
 * **Idempotent Link Generation**: Prevents duplicate entries by returning existing short codes.
 * **Custom Aliases & Validation**: Supports vanity URLs with regex validation and reserved keyword blocking.
 * **Asynchronous Analytics**: Logs visit data using background tasks without affecting latency.
-* **Optimized Redirection**: Uses indexed queries for sub-50ms performance.
+* **Optimized Redirection**: Uses indexed queries for sub-60ms performance.
 * **Rate Limiting**: Protects API using SlowAPI.
 
 ---
