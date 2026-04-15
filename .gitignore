@@ -8,4 +8,4 @@ __pycache__/
 .vscode/
 node_modules/
 dist/
-build/
+build/.env 
