@@ -2,7 +2,6 @@ import asyncio
 import asyncpg
 
 async def test():
-    # Use your password here
     dsn = 'postgresql://postgres:REMOVED@localhost:5432/postgres'
     print(f"Attempting to connect with: {dsn}")
     try:
