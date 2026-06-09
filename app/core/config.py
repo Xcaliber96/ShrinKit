@@ -8,7 +8,10 @@ class Settings(BaseSettings):
     BASE_URL: str = "http://localhost:8000" 
     APP_NAME: str = "Url Shortener"
     
-    model_config = SettingsConfigDict(env_file=".env")
+    model_config = SettingsConfigDict(
+    env_file=".env",
+    extra="ignore"
+)
 
 @lru_cache()
 def get_settings():

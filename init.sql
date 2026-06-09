@@ -12,6 +12,8 @@ CREATE INDEX IF NOT EXISTS idx_urls_short_code ON urls(short_code);
 CREATE TABLE IF NOT EXISTS url_visits (
     id BIGSERIAL PRIMARY KEY,
     url_id BIGINT REFERENCES urls(id) ON DELETE CASCADE,
-    visited_at TIMESTAMPTZ DEFAULT NOW(),
-    referrer TEXT NULL
+    ip TEXT,
+    user_agent TEXT,
+    referrer TEXT,
+    visited_at TIMESTAMPTZ DEFAULT NOW()
 );
