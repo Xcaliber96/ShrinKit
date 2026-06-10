@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface StatsData {
   total_clicks: number;
@@ -10,25 +19,59 @@ interface StatsData {
   top_referrers: { source: string; count: number }[];
 }
 
+interface TimelineEntry {
+  date: string;
+  clicks: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: { value: number }[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-gray-950 border border-cyan-500/30 rounded px-3 py-2 font-mono text-xs shadow-lg">
+        <p className="text-gray-400 mb-1">{label}</p>
+        <p className="text-cyan-400 font-bold">{payload[0].value} clicks</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function StatsPage() {
   const params = useParams();
   const shortCode = params.code as string;
-  
+
   const [stats, setStats] = useState<StatsData | null>(null);
+  const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAll = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/stats/${shortCode}`);
-        
-        if (!response.ok) {
+        const [statsRes, timelineRes] = await Promise.all([
+          fetch(`http://localhost:8000/stats/${shortCode}`),
+          fetch(`http://localhost:8000/stats/${shortCode}/timeline`),
+        ]);
+
+        if (!statsRes.ok) {
           throw new Error("Stats not found or link expired");
         }
-        
-        const data = await response.json();
-        setStats(data);
+
+        const statsData = await statsRes.json();
+        setStats(statsData);
+
+        if (timelineRes.ok) {
+          const timelineData = await timelineRes.json();
+          // reverse so chart goes oldest → newest left to right
+          const sorted = [...(timelineData.timeline || [])].reverse();
+          setTimeline(sorted);
+        }
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError(err.message);
@@ -41,7 +84,7 @@ export default function StatsPage() {
     };
 
     if (shortCode) {
-      fetchStats();
+      fetchAll();
     }
   }, [shortCode]);
 
@@ -63,27 +106,32 @@ export default function StatsPage() {
 
   return (
     <main className="min-h-screen bg-black text-gray-300 flex flex-col items-center py-20 px-4 font-sans selection:bg-fuchsia-500 selection:text-black relative overflow-hidden">
-      
+
       {/* Background grid */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
 
       <div className="max-w-3xl w-full relative z-10 space-y-8">
-        
+
         {/* Header */}
         <div className="border-b border-gray-800 pb-6">
           <p className="text-fuchsia-500 font-mono text-xs tracking-[0.2em] mb-2 uppercase">TELEMETRY_DATA</p>
           <h1 className="text-4xl font-mono font-bold text-cyan-400 tracking-tight">
             /{shortCode}
           </h1>
-          <a href={stats.original_url} target="_blank" rel="noopener noreferrer" className="text-gray-500 font-mono text-sm hover:text-gray-300 transition-colors mt-2 block truncate">
+          <a
+            href={stats.original_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 font-mono text-sm hover:text-gray-300 transition-colors mt-2 block truncate"
+          >
             {stats.original_url}
           </a>
         </div>
 
-        {/* Big Data Readout */}
+        {/* Total clicks */}
         <div className="bg-gray-900/50 backdrop-blur-sm p-8 rounded-xl border border-gray-800 relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-transparent rounded-xl opacity-0 group-hover:opacity-10 transition duration-1000 blur pointer-events-none"></div>
-          
+
           <p className="text-gray-600 font-mono text-xs tracking-widest mb-4">TOTAL_ENGAGEMENT</p>
           <div className="text-7xl font-mono font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]">
             {stats.total_clicks}
@@ -93,12 +141,55 @@ export default function StatsPage() {
           </p>
         </div>
 
-        {/* Referrers List */}
+        {/* Timeline chart */}
+        <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-800 bg-black/50">
+            <h2 className="text-xs font-mono font-bold text-cyan-400 tracking-[0.2em]">CLICK_TIMELINE // LAST 30 DAYS</h2>
+          </div>
+
+          {timeline.length > 0 ? (
+            <div className="p-6">
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={timeline} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: "#4b5563", fontSize: 10, fontFamily: "monospace" }}
+                    tickFormatter={(val: string) => val.slice(5)} // show MM-DD only
+                    axisLine={{ stroke: "#1f2937" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "#4b5563", fontSize: 10, fontFamily: "monospace" }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="clicks"
+                    stroke="#22d3ee"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: "#22d3ee", strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="px-6 py-8 text-center text-gray-600 font-mono text-sm">
+              NO_TIMELINE_DATA_DETECTED
+            </div>
+          )}
+        </div>
+
+        {/* Referrers */}
         <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-800 bg-black/50">
             <h2 className="text-xs font-mono font-bold text-fuchsia-400 tracking-[0.2em]">TRAFFIC_SOURCES</h2>
           </div>
-          
+
           {stats.top_referrers && stats.top_referrers.length > 0 ? (
             <ul className="divide-y divide-gray-800/50">
               {stats.top_referrers.map((ref, index) => (
@@ -114,8 +205,11 @@ export default function StatsPage() {
             </div>
           )}
         </div>
-        
-        <a href="/" className="inline-block mt-8 text-cyan-500 font-mono text-sm hover:text-cyan-400 hover:underline before:content-['<<_']">
+
+        <a
+          href="/"
+          className="inline-block mt-8 text-cyan-500 font-mono text-sm hover:text-cyan-400 hover:underline before:content-['<<_']"
+        >
           RETURN_TO_TERMINAL
         </a>
 

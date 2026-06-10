@@ -17,4 +17,5 @@ class ShortenResponse(BaseModel):
 class StatsResponse(BaseModel):
     total_clicks: int
     created_at: datetime
+    original_url: str      
     top_referrers: list
